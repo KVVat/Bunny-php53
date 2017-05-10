@@ -1,6 +1,8 @@
 <?php
 namespace Bunny;
 
+require_once ("../../vendor/autoload.php");
+
 use Bunny\Async\Client;
 use Bunny\Protocol\MethodBasicReturnFrame;
 use Bunny\Test\Exception\TimeoutException;
@@ -36,11 +38,11 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
             throw new TimeoutException();
         });
 
-        $client = new Client($loop, [
+        $client = new Client($loop, array(
             "user" => "testuser",
             "password" => "testpassword",
             "vhost" => "testvhost",
-        ]);
+        ));
         $client->connect()->then(function (Client $client) {
             return $client->disconnect();
         })->then(function () use ($loop) {
@@ -60,13 +62,14 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
             throw new TimeoutException();
         });
 
-        $client = new Client($loop, [
+        $client = new Client($loop, array(
             "user" => "testuser",
             "password" => "testpassword",
             "vhost" => "/",
-        ]);
-        $client->connect()->then(function () use ($loop) {
-            $this->fail("client should not connect");
+        ));
+        $self=$this;
+        $client->connect()->then(function () use ($loop,$self) {
+            $self->fail("client should not connect");
             $loop->stop();
         })->done();
 
@@ -101,20 +104,21 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
             throw new TimeoutException();
         });
 
+        $self=$this;
         $client = new Client($loop);
         $client->connect()->then(function (Client $client) {
-            return Promise\all([
+            return Promise\all(array(
                 $client->channel(),
                 $client->channel(),
                 $client->channel(),
-            ]);
-        })->then(function (array $chs) {
-            /** @var Channel[] $chs */
-            $this->assertCount(3, $chs);
+            ));
+        })->then(function (array $chs) use($self){
+            /** @var Channelarray() $chs */
+            $self->assertCount(3, $chs);
             for ($i = 0, $l = count($chs); $i < $l; ++$i) {
-                $this->assertInstanceOf("Bunny\\Channel", $chs[$i]);
+                $self->assertInstanceOf("Bunny\\Channel", $chs[$i]);
                 for ($j = 0; $j < $i; ++$j) {
-                    $this->assertNotEquals($chs[$i]->getChannelId(), $chs[$j]->getChannelId());
+                    $self->assertNotEquals($chs[$i]->getChannelId(), $chs[$j]->getChannelId());
                 }
             }
 
@@ -136,18 +140,19 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
         });
 
         $client = new Client($loop);
+        $self = $this;
         $client->connect()->then(function (Client $client) {
             return $client->channel();
         })->then(function (Channel $ch) {
-            return Promise\all([
+            return Promise\all(array(
                 $ch->queueDeclare("conflict", false, false),
                 $ch->queueDeclare("conflict", false, true),
-            ]);
-        })->then(function () use ($loop) {
-            $this->fail("Promise should get rejected");
+            ));
+        })->then(function () use ($loop,$self) {
+            $self->fail("Promise should get rejected");
             $loop->stop();
-        }, function (\Exception $e) use ($loop) {
-            $this->assertInstanceOf("Bunny\\Exception\\ClientException", $e);
+        }, function (\Exception $e) use ($loop,$self) {
+            $self->assertInstanceOf("Bunny\\Exception\\ClientException", $e);
             $loop->stop();
         })->done();
 
@@ -168,7 +173,7 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
         $client->connect()->then(function (Client $client) {
             return $client->channel();
         })->then(function (Channel $channel) use ($client, $loop, &$processed) {
-            return Promise\all([
+            return Promise\all(array(
                 $channel->qos(0, 1000),
                 $channel->queueDeclare("disconnect_test"),
                 $channel->consume(function (Message $message, Channel $channel) use ($client, $loop, &$processed) {
@@ -181,10 +186,10 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
                     });
 
                 }, "disconnect_test"),
-                $channel->publish(".", [], "", "disconnect_test"),
-                $channel->publish(".", [], "", "disconnect_test"),
-                $channel->publish(".", [], "", "disconnect_test"),
-            ]);
+                $channel->publish(".", array(), "", "disconnect_test"),
+                $channel->publish(".", array(), "", "disconnect_test"),
+                $channel->publish(".", array(), "", "disconnect_test"),
+            ));
         })->done();
 
         $loop->run();
@@ -204,41 +209,42 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
         $client = new Client($loop);
         /** @var Channel $channel */
         $channel = null;
+        $self=$this;
         $client->connect()->then(function (Client $client) {
             return $client->channel();
 
         })->then(function (Channel $ch) use (&$channel) {
             $channel = $ch;
 
-            return Promise\all([
+            return Promise\all(array(
                 $channel->queueDeclare("get_test"),
-                $channel->publish(".", [], "", "get_test"),
-            ]);
+                $channel->publish(".", array(), "", "get_test"),
+            ));
 
         })->then(function () use (&$channel) {
             return $channel->get("get_test", true);
 
-        })->then(function (Message $message1 = null) use (&$channel) {
-            $this->assertNotNull($message1);
-            $this->assertInstanceOf("Bunny\\Message", $message1);
-            $this->assertEquals($message1->exchange, "");
-            $this->assertEquals($message1->content, ".");
+        })->then(function (Message $message1 = null) use (&$channel,$self) {
+            $self->assertNotNull($message1);
+            $self->assertInstanceOf("Bunny\\Message", $message1);
+            $self->assertEquals($message1->exchange, "");
+            $self->assertEquals($message1->content, ".");
 
             return $channel->get("get_test", true);
 
-        })->then(function (Message $message2 = null) use (&$channel) {
-            $this->assertNull($message2);
+        })->then(function (Message $message2 = null) use (&$channel,$self) {
+            $self->assertNull($message2);
 
-            return $channel->publish("..", [], "", "get_test");
+            return $channel->publish("..", array(), "", "get_test");
 
         })->then(function () use (&$channel) {
             return $channel->get("get_test");
 
-        })->then(function (Message $message3 = null) use (&$channel) {
-            $this->assertNotNull($message3);
-            $this->assertInstanceOf("Bunny\\Message", $message3);
-            $this->assertEquals($message3->exchange, "");
-            $this->assertEquals($message3->content, "..");
+        })->then(function (Message $message3 = null) use (&$channel,$self) {
+            $self->assertNotNull($message3);
+            $self->assertInstanceOf("Bunny\\Message", $message3);
+            $self->assertEquals($message3->exchange, "");
+            $self->assertEquals($message3->content, "..");
 
             $channel->ack($message3);
 
@@ -280,7 +286,7 @@ class AsyncClientTest extends \PHPUnit_Framework_TestCase
                 $loop->stop();
             });
 
-            return $channel->publish("xxx", [], "", "404", true);
+            return $channel->publish("xxx", array(), "", "404", true);
         })->done();
 
         $loop->run();

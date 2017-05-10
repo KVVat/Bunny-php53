@@ -1,14 +1,28 @@
 {
-    "name": "moa/bunny-php53",
-    "description": "bunny",
-    "type": "library",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "moa-watanabe",
-            "email": "ko-watanabe@premoa.co.jp"
-        }
-    ],
-    "minimum-stability": "stable",
-    "require": {}
+  "name": "moa/bunny-php53",
+  "description": "bunny",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "moa-watanabe",
+      "email": "ko-watanabe@premoa.co.jp"
+    }
+  ],
+  "minimum-stability": "stable",
+  "require": {
+    "react/react": "0.3.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Bunny\\": [
+        "src\/",
+        "test\/Bunny\/"
+      ]
+    },
+    "classmap": [
+      "src\/",
+      "test\/Bunny\/"
+    ]
+  }
 }
