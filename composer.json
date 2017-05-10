@@ -1,0 +1,14 @@
+{
+    "name": "moa/bunny-php53",
+    "description": "bunny",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "moa-watanabe",
+            "email": "ko-watanabe@premoa.co.jp"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}
